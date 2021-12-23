@@ -1,0 +1,23 @@
+% shift = [ ; ]; 2x1
+function [O,AR,AL,BR,BL,CR,CL,DR,DL,ER,EL,upR,upL,dnR,dnL,masscenter] = shift_coordinate(O,AR,AL,BR,BL,CR,CL,DR,DL,ER,EL,upR,upL,dnR,dnL,masscenter,shift)
+    O = O + shift;
+    AR = AR + shift;
+    AL = AL + shift;
+    BR = BR + shift;
+    BL = BL + shift;
+    CR = CR + shift;
+    CL = CL + shift;
+    DR = DR + shift;
+    DL = DL + shift;
+    ER = ER + shift;
+    EL = EL + shift;
+    % OupR = OupR + shift;
+    % OupL = OupL + shift;
+    upR = upR + ones(length(upR(:,1)),1).*shift';
+    upL = upL + ones(length(upL(:,1)),1).*shift';
+    % OdnR = OdnR + shift;
+    % OdnL = OdnL + shift;
+    dnR = dnR + ones(length(dnR(:,1)),1).*shift';
+    dnL = dnL + ones(length(dnL(:,1)),1).*shift';
+    masscenter = masscenter + shift;
+end
