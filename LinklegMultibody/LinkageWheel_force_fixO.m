@@ -16,8 +16,8 @@ clear all; close all; clc;
 %% General Parameters (Using metic units - mmgs)
 
 % Time
-time.period = 0.001;
-time.step = 10;
+time.period = 0.002;
+time.step = 100;
 
 % Useful Constants
 n = 11; % Number of linkages
@@ -28,7 +28,7 @@ g = 9810 ;      % Gravitaional acceleration
 % Constraints
 no = 6; % Number of constraints to fix BASE to O
 nc = 14; % Number of joints(hinge)
-n_fix = 2; % Number of constraints to restrict the rotation around y-axis between alpha1 and O, alpha2 and O
+n_fix = 0; % Number of constraints to restrict the rotation around y-axis between alpha1 and O, alpha2 and O
 
 % plot
 a = 0.7;
@@ -47,192 +47,273 @@ del = 0.01; % time between animation frames
 
 %% Initial Conditions
 % Computing points and angle between linkage and [1 0] according to initial theta
-theta = 17;
-points = calculate_coordinate_flat(theta);
+beta_deg = 0;
+theta_deg = 17;
+points = calculate_coordinate_flat2(theta_deg,beta_deg);
 angle = linkleg_angle(points);
 
+% load R100 parameter
+load('param_R100.mat','R','up_deg');
+
 %% Linkage configurations (Using metic units - mmgs)
-% Assume BASE is fixed to O(fix joint)
+load('LinkProperty_R100.mat');
+% % Assume BASE is fixed to O(fix joint)
+% % Mass BASE(B)
+% 
+% B.h = 100; % Height (Assume B is a solid cuboid)
+% B.w = 100; % Width
+% B.d = 100; % Depth
+% B.x = [0 0 0]'; % Position of mass BASE
+% B.B_O = [0 0 0]';
+% B.theta = 0 ;
+% B.q = [cos(B.theta/2) 0 0 sin(B.theta/2)]'; % Orientation of mass B (quaternion)
+% B.m = 1000; % Mass
+% B.I = B.m/12 * [ B.h^2+B.d^2 0 0 ; 0 B.w^2+B.d^2 0 ; 0 0 B.w^2+B.h^2 ]; % Inertia Tensor
+% B.W = [(1/B.m)*eye(3) zeros(3,3);zeros(3,3) inv(B.I)]; % Inverse inertia matrix
+% 
+% % ---------- Linkage alpha-1(Rigid Body) ----------
+% alpha1.m = 49.438724 ;
+% alpha1.I = [5226.992514	 5575.651755	 30.511514 ;
+% 	        5575.651755	 52731.315884	 2.550826 ;
+% 	        30.511514	 2.550826	     51270.275795 ];
+% 
+% % alpha1.I = [ 5226.992514	 5575.651755	 -30.511514 ;
+% % 	         5575.651755	 52731.315884	   2.550826 ;
+% % 	          -30.511514	 2.550826	   51270.275795 ];
+% 
+% alpha1.W = [(1/alpha1.m)*eye(3) zeros(3,3);zeros(3,3) inv(alpha1.I)]; % Inverse inertia matrix
+% alpha1.q = [cos(angle.alpha1_phi/2) 0 -sin(angle.alpha1_phi/2) 0]';
+% 
+% % alpha1.alpha1_O1 = [-36.45 0 0.02]'; % [-36.45 -8.63 0.02]'; % The vector pointing from the C.O.M of alpha-1 to O in the local frame.
+% alpha1.alpha1_O1 = [-36.45 -8.63 0.02]'; % local frame
+% alpha1.len = norm(alpha1.alpha1_O1);
+% alpha1.x = Rq(B.q)*B.x - Rq(alpha1.q)*alpha1.alpha1_O1; % global frame
+% alpha1.alpha1_A1 = Rq(alpha1.q)'*(Rq(B.q)*points.A1_3d - alpha1.x); % local frame
+% alpha1.alpha1_B1 = Rq(alpha1.q)'*(Rq(B.q)*points.B1_3d - alpha1.x); % local frame
+% % --------------------------------------------------
+% 
+% % ---------- Linkage alpha-2(Rigid Body) -----------
+% % alpha2.m = 49.438724 ;  %48.332901;
+% alpha2.m = 48.332901;
+% alpha2.I = [5226.992514	 5575.651755	 30.511514 ;
+% 	        5575.651755	 52731.315884	 2.550826 ;
+% 	        30.511514	 2.550826	     51270.275795 ]; 
+% %             [  5320.371779	5878.366912      -26.243856;
+% %         	 -5878.366912	53989.169452	   1.415240;
+% % 	           -26.243856	    1.415240   52405.042766];
+% 
+% % alpha2.I = [  5320.372467   -5878.155734      26.348805;
+% %              -5878.155734   53989.571406       1.355846;
+% %                 26.348805       1.355846   52405.385266];
+% alpha2.W = [(1/alpha2.m)*eye(3) zeros(3,3);zeros(3,3) inv(alpha2.I)];
+% alpha2.q = [cos(angle.alpha2_phi/2) 0 -sin(angle.alpha2_phi/2) 0]';
+% 
+% % alpha2.alpha2_O2 = [-36.43   0   -0.02 ]';
+% alpha2.alpha2_O2 = [-36.45 -8.63 -0.02]'; % local frame
+% alpha2.len = norm(alpha2.alpha2_O2);
+% alpha2.x = Rq(B.q)*B.x - Rq(alpha2.q)*alpha2.alpha2_O2; % global frame
+% alpha2.alpha2_A2 = Rq(alpha2.q)'*(Rq(B.q)*points.A2_3d - alpha2.x); % local frame
+% alpha2.alpha2_B2 = Rq(alpha2.q)'*(Rq(B.q)*points.B2_3d - alpha2.x); % local frame
+% % ----------------------------------------------------
+% 
+% % ---------- Linkage gamma-1(Rigid Body) ----------
+% gamma1.m =  49.049581 ;
+% % gamma1.m =  0.001 ;
+% gamma1.I =[ 2956.157949	    0.004740	  1300.105736 ;
+% 	        0.004740	    92320.757630  -0.000375 ;
+% 	        1300.105736	    -0.000375	  90182.095841];
+%  
+% gamma1.W = [(1/gamma1.m)*eye(3) zeros(3,3);zeros(3,3) inv(gamma1.I)];
+% gamma1.q = [cos(angle.gamma1_phi/2) 0 -sin(angle.gamma1_phi/2) 0]';
+% 
+% gamma1.gamma1_A1 = [-65.68 0 -4.57]'; %[-65.68 5 -4.57]';
+% % gamma1.gamma1_A1 = [-65.68 5 -4.57]';  % local frame
+% gamma1.len = norm(gamma1.gamma1_A1);
+% gamma1.x = Rq(B.q)*points.A1_3d - Rq(gamma1.q)*gamma1.gamma1_A1; % global frame
+% gamma1.gamma1_D1 = Rq(gamma1.q)'*(Rq(B.q)*points.D1_3d - gamma1.x); % local frame
+% gamma1.gamma1_E  = Rq(gamma1.q)'*(Rq(B.q)*points.E_3d - gamma1.x); % local frame
+% % -------------------------------------------------
+% 
+% 
+% % ---------- Linkage gamma-2(Rigid Body) ----------
+% gamma2.m = 49.049581;
+% % gamma2.m = 0.001;
+% gamma2.I = [ 2956.157949	  -0.004740	   -1300.105736 ;
+% 	        -0.004740	     92320.757630	  -0.000375 ;
+% 	        -1300.105736	   -0.000375	  90182.095841];
+% 
+% gamma2.W = [(1/gamma2.m)*eye(3) zeros(3,3);zeros(3,3) inv(gamma2.I)];
+% gamma2.q = [cos(angle.gamma2_phi/2) 0 -sin(angle.gamma2_phi/2) 0]';
+% 
+% gamma2.gamma2_A2 =  [-65.68 0 4.57]'; 
+% % gamma2.gamma2_A2 =  [-65.68 -5 4.57]'; %local frame
+% gamma2.len = norm(gamma2.gamma2_A2);
+% gamma2.x = Rq(B.q)*points.A2_3d - Rq(gamma2.q)*gamma2.gamma2_A2;  % global frame
+% gamma2.gamma2_D2 = Rq(gamma2.q)'*(Rq(B.q)*points.D2_3d - gamma2.x); % local frame
+% gamma2.gamma2_E  = Rq(gamma2.q)'*(Rq(B.q)*points.E_3d - gamma2.x); % local frame
+% % -------------------------------------------------
+% 
+% % ----------- Linkage beta-1(Rigid Body) ----------
+% beta1.m = 142.168440;
+% beta1.I = [ 91843.636529	 -772.772852	 40829.647339 ;
+%             -772.772852    517848.015598	 -201.475342  ;
+%         	40829.647339	 -201.475342	 493681.548715];
+% 
+% beta1.W = [(1/beta1.m)*eye(3) zeros(3,3);zeros(3,3) inv(beta1.I)];
+% beta1.q = [cos(angle.beta1_phi/2) 0 -sin(angle.beta1_phi/2) 0]';
+% 
+% beta1.beta1_B1 = [-75.5 0 -28.66]'; % local frame
+% beta1.x = Rq(B.q)*points.B1_3d - Rq(beta1.q)*beta1.beta1_B1; % global frame
+% beta1.beta1_C1 = Rq(beta1.q)'*(Rq(B.q)*points.C1_3d - beta1.x); % local frame
+% beta1.beta1_F1 = Rq(beta1.q)'*(Rq(B.q)*points.F1_3d - beta1.x); % local frame
+% % -------------------------------------------------
+% 
+% % ----------- Linkage beta-2(Rigid Body) ----------
+% beta2.m = 142.168440;
+% beta2.I = [ 91843.636529	  772.772852	 -40829.647339 ;
+%              772.772852    517848.015598	 -201.475342  ;
+%         	-40829.647339	 -201.475342	 493681.548715];
+% 
+% beta2.W = [(1/beta2.m)*eye(3) zeros(3,3);zeros(3,3) inv(beta2.I)];
+% beta2.q = [cos(angle.beta2_phi/2) 0 -sin(angle.beta2_phi/2) 0]';
+% 
+% beta2.beta2_B2 = [-75.5 0 28.66]'; % local frame
+% beta2.x = Rq(B.q)*points.B2_3d - Rq(beta2.q)*beta2.beta2_B2; % global frame
+% beta2.beta2_C2 = Rq(beta2.q)'*(Rq(B.q)*points.C2_3d - beta2.x); % local frame
+% beta2.beta2_F2 = Rq(beta2.q)'*(Rq(B.q)*points.F2_3d - beta2.x); % local frame
+% % -------------------------------------------------
+% 
+% % ---------- Linkage delta-1(Rigid Body) ----------
+% delta1.m =  15.681471 ;
+% delta1.I = [  352.062649	 0.000000	    0.000000;
+% 	            0.000000	 13277.939609	 0.000000;
+% 	            0.000000	 0.000000	 13187.234818];
+%  
+% delta1.W = [(1/delta1.m)*eye(3) zeros(3,3);zeros(3,3) inv(delta1.I)];
+% delta1.q = [cos(angle.delta1_phi/2) 0 -sin(angle.delta1_phi/2) 0]';
+% 
+% delta1.delta1_D1 =  [-42.6 0 0]'; % [-42.6 5 0]';
+% delta1.x = Rq(B.q)*points.D1_3d - Rq(delta1.q)*delta1.delta1_D1; % global frame
+% delta1.delta1_C1 = Rq(delta1.q)'*(Rq(B.q)*points.C1_3d - delta1.x); % local frame
+% % -------------------------------------------------
+% 
+% % ---------- Linkage delta-2(Rigid Body) ----------
+% delta2.m =   15.681471;
+% delta2.I = [  352.062649	 0.000000	    0.000000;
+% 	            0.000000	 13277.939609	 0.000000;
+% 	            0.000000	 0.000000	 13187.234818];
+% 
+% delta2.W = [(1/delta2.m)*eye(3) zeros(3,3);zeros(3,3) inv(delta2.I)];
+% delta2.q = [cos(angle.delta2_phi/2) 0 -sin(angle.delta2_phi/2) 0]';
+% 
+% delta2.delta2_D2 =  [-42.6 0 0]'; % [-42.6 -5 0]'; 
+% delta2.x = Rq(B.q)*points.D2_3d - Rq(delta2.q)*delta2.delta2_D2; % global frame
+% delta2.delta2_C2 = Rq(delta2.q)'*(Rq(B.q)*points.C2_3d - delta2.x); % local frame
+% % -------------------------------------------------
+% 
+% % ---------- Linkage epsilon-1(Rigid Body) ----------
+% epsilon1.m =  66.713674;
+% epsilon1.I = [10744.530879   1691.358784	   735.827120 ;
+% 	           1691.358784	  57872.558479	  779.660039 ;
+% 	            735.827120	  779.660039	  58548.216359];
+% 
+% epsilon1.W = [(1/epsilon1.m)*eye(3) zeros(3,3);zeros(3,3) inv(epsilon1.I)];
+% epsilon1.q = [cos(angle.epsilon1_phi/2) 0 -sin(angle.epsilon1_phi/2) 0]';
+% 
+% epsilon1.epsilon1_F1 = [-44.1 0 -7.6]';
+% epsilon1.x = Rq(B.q)*points.F1_3d - Rq(epsilon1.q)*epsilon1.epsilon1_F1; % global frame
+% epsilon1.epsilon1_G = Rq(epsilon1.q)'*(Rq(B.q)*points.G_3d - epsilon1.x); % local frame
+% % ---------------------------------------------------
+% 
+% % ---------- Linkage epsilon-2(Rigid Body) ----------
+% epsilon2.m =  66.713674;
+% epsilon2.I = [10744.530879    -1691.358784	   -735.827120 ;
+% 	          -1691.358784	  57872.558479	    779.660039 ;
+% 	           -735.827120	    779.660039	  58548.216359];
+% 
+% epsilon2.W = [(1/epsilon2.m)*eye(3) zeros(3,3);zeros(3,3) inv(epsilon2.I)];
+% epsilon2.q = [cos(angle.epsilon2_phi/2) 0 -sin(angle.epsilon2_phi/2) 0]';
+% 
+% epsilon2.epsilon2_F2 = [-44.1 0 7.6]';
+% epsilon2.x = Rq(B.q)*points.F2_3d - Rq(epsilon2.q)*epsilon2.epsilon2_F2; % global frame
+% epsilon2.epsilon2_G = Rq(epsilon2.q)'*(Rq(B.q)*points.G_3d - epsilon2.x); % local frame
+% % ---------------------------------------------------
 
-% Mass BASE(B)
+% ---------- Mass BASE(B) ----------
+BASE.x = points.O_3d;
+BASE.theta = 0;
+BASE.q = [cos(BASE.theta/2) 0 0 sin(BASE.theta/2)]'; % Orientation of mass B (quaternion)
 
-B.h = 100; % Height (Assume B is a solid cuboid)
-B.w = 100; % Width
-B.d = 100; % Depth
-B.x = [0 0 0]'; % Position of mass BASE
-B.B_O = [0 0 0]';
-B.theta = 0 ;
-B.q = [cos(B.theta/2) 0 0 sin(B.theta/2)]'; % Orientation of mass B (quaternion)
-B.m = 1000; % Mass
-B.I = B.m/12 * [ B.h^2+B.d^2 0 0 ; 0 B.w^2+B.d^2 0 ; 0 0 B.w^2+B.h^2 ]; % Inertia Tensor
-B.W = [(1/B.m)*eye(3) zeros(3,3);zeros(3,3) inv(B.I)]; % Inverse inertia matrix
+% sliding joint
+BASE.anchor = [0 0 -100]';
+% B.x_anchor = [0 0 -100]; % CoM to anchor point
 
 % ---------- Linkage alpha-1(Rigid Body) ----------
-alpha1.m = 49.438724 ;
-alpha1.I = [5226.992514	 5575.651755	 30.511514 ;
-	        5575.651755	 52731.315884	 2.550826 ;
-	        30.511514	 2.550826	     51270.275795 ];
-
-% alpha1.I = [ 5226.992514	 5575.651755	 -30.511514 ;
-% 	         5575.651755	 52731.315884	   2.550826 ;
-% 	          -30.511514	 2.550826	   51270.275795 ];
-
-alpha1.W = [(1/alpha1.m)*eye(3) zeros(3,3);zeros(3,3) inv(alpha1.I)]; % Inverse inertia matrix
 alpha1.q = [cos(angle.alpha1_phi/2) 0 -sin(angle.alpha1_phi/2) 0]';
-
-% alpha1.alpha1_O1 = [-36.45 0 0.02]'; % [-36.45 -8.63 0.02]'; % The vector pointing from the C.O.M of alpha-1 to O in the local frame.
-alpha1.alpha1_O1 = [-36.45 -8.63 0.02]'; % local frame
-alpha1.len = norm(alpha1.alpha1_O1);
-alpha1.x = Rq(B.q)*B.x - Rq(alpha1.q)*alpha1.alpha1_O1; % global frame
-alpha1.alpha1_A1 = Rq(alpha1.q)'*(Rq(B.q)*points.A1_3d - alpha1.x); % local frame
-alpha1.alpha1_B1 = Rq(alpha1.q)'*(Rq(B.q)*points.B1_3d - alpha1.x); % local frame
+% alpha1.alpha1_O1 = [-36.45 -8.63 0.02]'; % local frame
+alpha1.x = Rq(BASE.q)*BASE.x - Rq(alpha1.q)*alpha1.alpha1_O1; % global frame
+alpha1.alpha1_A1 = Rq(alpha1.q)'*(Rq(BASE.q)*points.A1_3d - alpha1.x); % local frame
+alpha1.alpha1_B1 = Rq(alpha1.q)'*(Rq(BASE.q)*points.B1_3d - alpha1.x); % local frame
 % --------------------------------------------------
 
 % ---------- Linkage alpha-2(Rigid Body) -----------
-% alpha2.m = 49.438724 ;  %48.332901;
-alpha2.m = 48.332901;
-alpha2.I = [5226.992514	 5575.651755	 30.511514 ;
-	        5575.651755	 52731.315884	 2.550826 ;
-	        30.511514	 2.550826	     51270.275795 ]; 
-%             [  5320.371779	5878.366912      -26.243856;
-%         	 -5878.366912	53989.169452	   1.415240;
-% 	           -26.243856	    1.415240   52405.042766];
-
-% alpha2.I = [  5320.372467   -5878.155734      26.348805;
-%              -5878.155734   53989.571406       1.355846;
-%                 26.348805       1.355846   52405.385266];
-alpha2.W = [(1/alpha2.m)*eye(3) zeros(3,3);zeros(3,3) inv(alpha2.I)];
 alpha2.q = [cos(angle.alpha2_phi/2) 0 -sin(angle.alpha2_phi/2) 0]';
-
-% alpha2.alpha2_O2 = [-36.43   0   -0.02 ]';
-alpha2.alpha2_O2 = [-36.45 -8.63 -0.02]'; % local frame
-alpha2.len = norm(alpha2.alpha2_O2);
-alpha2.x = Rq(B.q)*B.x - Rq(alpha2.q)*alpha2.alpha2_O2; % global frame
-alpha2.alpha2_A2 = Rq(alpha2.q)'*(Rq(B.q)*points.A2_3d - alpha2.x); % local frame
-alpha2.alpha2_B2 = Rq(alpha2.q)'*(Rq(B.q)*points.B2_3d - alpha2.x); % local frame
+alpha2.x = Rq(BASE.q)*BASE.x - Rq(alpha2.q)*alpha2.alpha2_O2; % global frame
+alpha2.alpha2_A2 = Rq(alpha2.q)'*(Rq(BASE.q)*points.A2_3d - alpha2.x); % local frame
+alpha2.alpha2_B2 = Rq(alpha2.q)'*(Rq(BASE.q)*points.B2_3d - alpha2.x); % local frame
 % ----------------------------------------------------
 
 % ---------- Linkage gamma-1(Rigid Body) ----------
-gamma1.m =  49.049581 ;
-% gamma1.m =  0.001 ;
-gamma1.I =[ 2956.157949	    0.004740	  1300.105736 ;
-	        0.004740	    92320.757630  -0.000375 ;
-	        1300.105736	    -0.000375	  90182.095841];
- 
-gamma1.W = [(1/gamma1.m)*eye(3) zeros(3,3);zeros(3,3) inv(gamma1.I)];
 gamma1.q = [cos(angle.gamma1_phi/2) 0 -sin(angle.gamma1_phi/2) 0]';
-
-gamma1.gamma1_A1 = [-65.68 0 -4.57]'; %[-65.68 5 -4.57]';
-% gamma1.gamma1_A1 = [-65.68 5 -4.57]';  % local frame
-gamma1.len = norm(gamma1.gamma1_A1);
-gamma1.x = Rq(B.q)*points.A1_3d - Rq(gamma1.q)*gamma1.gamma1_A1; % global frame
-gamma1.gamma1_D1 = Rq(gamma1.q)'*(Rq(B.q)*points.D1_3d - gamma1.x); % local frame
-gamma1.gamma1_E  = Rq(gamma1.q)'*(Rq(B.q)*points.E_3d - gamma1.x); % local frame
+gamma1.x = Rq(BASE.q)*points.A1_3d - Rq(gamma1.q)*gamma1.gamma1_A1; % global frame
+gamma1.gamma1_D1 = Rq(gamma1.q)'*(Rq(BASE.q)*points.D1_3d - gamma1.x); % local frame
+gamma1.gamma1_E  = Rq(gamma1.q)'*(Rq(BASE.q)*points.E_3d - gamma1.x); % local frame
 % -------------------------------------------------
 
 
 % ---------- Linkage gamma-2(Rigid Body) ----------
-gamma2.m = 49.049581;
-% gamma2.m = 0.001;
-gamma2.I = [ 2956.157949	  -0.004740	   -1300.105736 ;
-	        -0.004740	     92320.757630	  -0.000375 ;
-	        -1300.105736	   -0.000375	  90182.095841];
-
-gamma2.W = [(1/gamma2.m)*eye(3) zeros(3,3);zeros(3,3) inv(gamma2.I)];
 gamma2.q = [cos(angle.gamma2_phi/2) 0 -sin(angle.gamma2_phi/2) 0]';
-
-gamma2.gamma2_A2 =  [-65.68 0 4.57]'; 
-% gamma2.gamma2_A2 =  [-65.68 -5 4.57]'; %local frame
-gamma2.len = norm(gamma2.gamma2_A2);
-gamma2.x = Rq(B.q)*points.A2_3d - Rq(gamma2.q)*gamma2.gamma2_A2;  % global frame
-gamma2.gamma2_D2 = Rq(gamma2.q)'*(Rq(B.q)*points.D2_3d - gamma2.x); % local frame
-gamma2.gamma2_E  = Rq(gamma2.q)'*(Rq(B.q)*points.E_3d - gamma2.x); % local frame
+gamma2.x = Rq(BASE.q)*points.A2_3d - Rq(gamma2.q)*gamma2.gamma2_A2;  % global frame
+gamma2.gamma2_D2 = Rq(gamma2.q)'*(Rq(BASE.q)*points.D2_3d - gamma2.x); % local frame
+gamma2.gamma2_E  = Rq(gamma2.q)'*(Rq(BASE.q)*points.E_3d - gamma2.x); % local frame
 % -------------------------------------------------
 
 % ----------- Linkage beta-1(Rigid Body) ----------
-beta1.m = 142.168440;
-beta1.I = [ 91843.636529	 -772.772852	 40829.647339 ;
-            -772.772852    517848.015598	 -201.475342  ;
-        	40829.647339	 -201.475342	 493681.548715];
-
-beta1.W = [(1/beta1.m)*eye(3) zeros(3,3);zeros(3,3) inv(beta1.I)];
 beta1.q = [cos(angle.beta1_phi/2) 0 -sin(angle.beta1_phi/2) 0]';
-
-beta1.beta1_B1 = [-75.5 0 -28.66]'; % local frame
-beta1.x = Rq(B.q)*points.B1_3d - Rq(beta1.q)*beta1.beta1_B1; % global frame
-beta1.beta1_C1 = Rq(beta1.q)'*(Rq(B.q)*points.C1_3d - beta1.x); % local frame
-beta1.beta1_F1 = Rq(beta1.q)'*(Rq(B.q)*points.F1_3d - beta1.x); % local frame
+beta1.x = Rq(BASE.q)*points.B1_3d - Rq(beta1.q)*beta1.beta1_B1; % global frame
+beta1.beta1_C1 = Rq(beta1.q)'*(Rq(BASE.q)*points.C1_3d - beta1.x); % local frame
+beta1.beta1_F1 = Rq(beta1.q)'*(Rq(BASE.q)*points.F1_3d - beta1.x); % local frame
 % -------------------------------------------------
 
 % ----------- Linkage beta-2(Rigid Body) ----------
-beta2.m = 142.168440;
-beta2.I = [ 91843.636529	  772.772852	 -40829.647339 ;
-             772.772852    517848.015598	 -201.475342  ;
-        	-40829.647339	 -201.475342	 493681.548715];
-
-beta2.W = [(1/beta2.m)*eye(3) zeros(3,3);zeros(3,3) inv(beta2.I)];
 beta2.q = [cos(angle.beta2_phi/2) 0 -sin(angle.beta2_phi/2) 0]';
-
-beta2.beta2_B2 = [-75.5 0 28.66]'; % local frame
-beta2.x = Rq(B.q)*points.B2_3d - Rq(beta2.q)*beta2.beta2_B2; % global frame
-beta2.beta2_C2 = Rq(beta2.q)'*(Rq(B.q)*points.C2_3d - beta2.x); % local frame
-beta2.beta2_F2 = Rq(beta2.q)'*(Rq(B.q)*points.F2_3d - beta2.x); % local frame
+beta2.x = Rq(BASE.q)*points.B2_3d - Rq(beta2.q)*beta2.beta2_B2; % global frame
+beta2.beta2_C2 = Rq(beta2.q)'*(Rq(BASE.q)*points.C2_3d - beta2.x); % local frame
+beta2.beta2_F2 = Rq(beta2.q)'*(Rq(BASE.q)*points.F2_3d - beta2.x); % local frame
 % -------------------------------------------------
 
 % ---------- Linkage delta-1(Rigid Body) ----------
-delta1.m =  15.681471 ;
-delta1.I = [  352.062649	 0.000000	    0.000000;
-	            0.000000	 13277.939609	 0.000000;
-	            0.000000	 0.000000	 13187.234818];
- 
-delta1.W = [(1/delta1.m)*eye(3) zeros(3,3);zeros(3,3) inv(delta1.I)];
 delta1.q = [cos(angle.delta1_phi/2) 0 -sin(angle.delta1_phi/2) 0]';
-
-delta1.delta1_D1 =  [-42.6 0 0]'; % [-42.6 5 0]';
-delta1.x = Rq(B.q)*points.D1_3d - Rq(delta1.q)*delta1.delta1_D1; % global frame
-delta1.delta1_C1 = Rq(delta1.q)'*(Rq(B.q)*points.C1_3d - delta1.x); % local frame
+delta1.x = Rq(BASE.q)*points.D1_3d - Rq(delta1.q)*delta1.delta1_D1; % global frame
+delta1.delta1_C1 = Rq(delta1.q)'*(Rq(BASE.q)*points.C1_3d - delta1.x); % local frame
 % -------------------------------------------------
 
 % ---------- Linkage delta-2(Rigid Body) ----------
-delta2.m =   15.681471;
-delta2.I = [  352.062649	 0.000000	    0.000000;
-	            0.000000	 13277.939609	 0.000000;
-	            0.000000	 0.000000	 13187.234818];
-
-delta2.W = [(1/delta2.m)*eye(3) zeros(3,3);zeros(3,3) inv(delta2.I)];
-delta2.q = [cos(angle.delta2_phi/2) 0 -sin(angle.delta2_phi/2) 0]';
-
-delta2.delta2_D2 =  [-42.6 0 0]'; % [-42.6 -5 0]'; 
-delta2.x = Rq(B.q)*points.D2_3d - Rq(delta2.q)*delta2.delta2_D2; % global frame
-delta2.delta2_C2 = Rq(delta2.q)'*(Rq(B.q)*points.C2_3d - delta2.x); % local frame
+delta2.q = [cos(angle.delta2_phi/2) 0 -sin(angle.delta2_phi/2) 0]'; 
+delta2.x = Rq(BASE.q)*points.D2_3d - Rq(delta2.q)*delta2.delta2_D2; % global frame
+delta2.delta2_C2 = Rq(delta2.q)'*(Rq(BASE.q)*points.C2_3d - delta2.x); % local frame
 % -------------------------------------------------
 
 % ---------- Linkage epsilon-1(Rigid Body) ----------
-epsilon1.m =  66.713674;
-epsilon1.I = [10744.530879   1691.358784	   735.827120 ;
-	           1691.358784	  57872.558479	  779.660039 ;
-	            735.827120	  779.660039	  58548.216359];
-
-epsilon1.W = [(1/epsilon1.m)*eye(3) zeros(3,3);zeros(3,3) inv(epsilon1.I)];
 epsilon1.q = [cos(angle.epsilon1_phi/2) 0 -sin(angle.epsilon1_phi/2) 0]';
-
-epsilon1.epsilon1_F1 = [-44.1 0 -7.6]';
-epsilon1.x = Rq(B.q)*points.F1_3d - Rq(epsilon1.q)*epsilon1.epsilon1_F1; % global frame
-epsilon1.epsilon1_G = Rq(epsilon1.q)'*(Rq(B.q)*points.G_3d - epsilon1.x); % local frame
+epsilon1.x = Rq(BASE.q)*points.F1_3d - Rq(epsilon1.q)*epsilon1.epsilon1_F1; % global frame
+epsilon1.epsilon1_G = Rq(epsilon1.q)'*(Rq(BASE.q)*points.G_3d - epsilon1.x); % local frame
 % ---------------------------------------------------
 
 % ---------- Linkage epsilon-2(Rigid Body) ----------
-epsilon2.m =  66.713674;
-epsilon2.I = [10744.530879    -1691.358784	   -735.827120 ;
-	          -1691.358784	  57872.558479	    779.660039 ;
-	           -735.827120	    779.660039	  58548.216359];
-
-epsilon2.W = [(1/epsilon2.m)*eye(3) zeros(3,3);zeros(3,3) inv(epsilon2.I)];
 epsilon2.q = [cos(angle.epsilon2_phi/2) 0 -sin(angle.epsilon2_phi/2) 0]';
-
-epsilon2.epsilon2_F2 = [-44.1 0 7.6]';
-epsilon2.x = Rq(B.q)*points.F2_3d - Rq(epsilon2.q)*epsilon2.epsilon2_F2; % global frame
-epsilon2.epsilon2_G = Rq(epsilon2.q)'*(Rq(B.q)*points.G_3d - epsilon2.x); % local frame
+epsilon2.x = Rq(BASE.q)*points.F2_3d - Rq(epsilon2.q)*epsilon2.epsilon2_F2; % global frame
+epsilon2.epsilon2_G = Rq(epsilon2.q)'*(Rq(BASE.q)*points.G_3d - epsilon2.x); % local frame
 % ---------------------------------------------------
 
 % Combining the unit vectors for convenience
@@ -249,8 +330,8 @@ end
 % I = [B.I alpha1.I alpha2.I gamma1.I gamma2.I];
 % M = [B.m alpha1.m alpha2.m gamma1.m gamma2.m beta1.m beta2.m delta1.m delta2.m];
 % I = [B.I alpha1.I alpha2.I gamma1.I gamma2.I beta1.I beta2.I delta1.I delta2.I];
-M = [B.m alpha1.m alpha2.m gamma1.m gamma2.m beta1.m beta2.m delta1.m delta2.m epsilon1.m epsilon2.m];
-I = [B.I alpha1.I alpha2.I gamma1.I gamma2.I beta1.I beta2.I delta1.I delta2.I epsilon1.I epsilon2.I];
+M = [BASE.m alpha1.m alpha2.m gamma1.m gamma2.m beta1.m beta2.m delta1.m delta2.m epsilon1.m epsilon2.m];
+I = [BASE.I alpha1.I alpha2.I gamma1.I gamma2.I beta1.I beta2.I delta1.I delta2.I epsilon1.I epsilon2.I];
 
 %% Book-keeping
 history.s = zeros(7*n,time.step+1);
@@ -286,7 +367,7 @@ wrench.total = zeros(6*n,1);
 
 %% Initial Conditions and Setup / Initialize book-keeping
 
-s0 = [       B.x ;        B.q ;
+s0 = [    BASE.x ;     BASE.q ;
         alpha1.x ;   alpha1.q ;   alpha2.x ;   alpha2.q ;
         gamma1.x ;   gamma1.q ;   gamma2.x ;   gamma2.q ;  
          beta1.x ;    beta1.q ;    beta2.x ;    beta2.q ; 
@@ -499,33 +580,16 @@ for t = 1:time.step
     Jr_O2_a2         = [zeros(1,3)  -ns(:,2,3)'];
 
     % fix BASE(B) to O
-    J_BASE_O = [eye(3) -skew(B.B_O) zeros(3,(n-1)*6) ; zeros(3,3) eye(3) zeros(3,(n-1)*6)];
+    J_BASE_O = [eye(3) -skew(BASE.BASE_O) zeros(3,(n-1)*6) ; zeros(3,3) eye(3) zeros(3,(n-1)*6)];
 
     X = zeros(5 ,6);
     x = zeros(1 ,6);
 
     % Jacobian of Body, alpha1,2, gamma1,2, beta1,2, delta1,2, epsilon1,2(fixed)
-    J = [J_O1_B   J_O1_a1         X        X        X         X        X         X        X         X        X;
-         J_O2_B         X   J_O2_a2        X        X         X        X         X        X         X        X;
-        Jr_O1_B  Jr_O1_a1         x        x        x         x        x         x        x         x        x;
-        Jr_O2_B         x  Jr_O2_a2        x        x         x        x         x        x         x        x;
-              X   J_A1_a1         X  J_A1_g1        X         X        X         X        X         X        X;
-              X         X   J_A2_a2        X  J_A2_g2         X        X         X        X         X        X;
-              X         X         X   J_E_g1   J_E_g2         X        X         X        X         X        X;
-              X   J_B1_a1         X        X        X   J_B1_b1        X         X        X         X        X;
-              X         X   J_B2_a2        X        X         X  J_B2_b2         X        X         X        X;
-              X         X         X        X        X   J_C1_b1        X   J_C1_d1        X         X        X;
-              X         X         X        X        X         X  J_C2_b2         X  J_C2_d2         X        X;
-              X         X         X  J_D1_g1        X         X        X   J_D1_d1        X         X        X;
-              X         X         X        X  J_D2_g2         X        X         X  J_D2_d2         X        X;
-              X         X         X        X        X   J_F1_b1        X         X        X   J_F1_e1        X;
-              X         X         X        X        X         X  J_F2_b2         X        X         X  J_F2_e2;
-              X         X         X        X        X         X        X         X        X    J_G_e1   J_G_e2;
-       J_BASE_O];       
-
-    % Jacobian of Body, alpha1,2, gamma1,2, beta1,2, delta1,2, epsilon1,2(freely)
 %     J = [J_O1_B   J_O1_a1         X        X        X         X        X         X        X         X        X;
 %          J_O2_B         X   J_O2_a2        X        X         X        X         X        X         X        X;
+%         Jr_O1_B  Jr_O1_a1         x        x        x         x        x         x        x         x        x;
+%         Jr_O2_B         x  Jr_O2_a2        x        x         x        x         x        x         x        x;
 %               X   J_A1_a1         X  J_A1_g1        X         X        X         X        X         X        X;
 %               X         X   J_A2_a2        X  J_A2_g2         X        X         X        X         X        X;
 %               X         X         X   J_E_g1   J_E_g2         X        X         X        X         X        X;
@@ -538,7 +602,24 @@ for t = 1:time.step
 %               X         X         X        X        X   J_F1_b1        X         X        X   J_F1_e1        X;
 %               X         X         X        X        X         X  J_F2_b2         X        X         X  J_F2_e2;
 %               X         X         X        X        X         X        X         X        X    J_G_e1   J_G_e2;
-%        J_BASE_O]; 
+%        J_BASE_O];       
+
+    % Jacobian of Body, alpha1,2, gamma1,2, beta1,2, delta1,2, epsilon1,2(freely)
+    J = [J_O1_B   J_O1_a1         X        X        X         X        X         X        X         X        X;
+         J_O2_B         X   J_O2_a2        X        X         X        X         X        X         X        X;
+              X   J_A1_a1         X  J_A1_g1        X         X        X         X        X         X        X;
+              X         X   J_A2_a2        X  J_A2_g2         X        X         X        X         X        X;
+              X         X         X   J_E_g1   J_E_g2         X        X         X        X         X        X;
+              X   J_B1_a1         X        X        X   J_B1_b1        X         X        X         X        X;
+              X         X   J_B2_a2        X        X         X  J_B2_b2         X        X         X        X;
+              X         X         X        X        X   J_C1_b1        X   J_C1_d1        X         X        X;
+              X         X         X        X        X         X  J_C2_b2         X  J_C2_d2         X        X;
+              X         X         X  J_D1_g1        X         X        X   J_D1_d1        X         X        X;
+              X         X         X        X  J_D2_g2         X        X         X  J_D2_d2         X        X;
+              X         X         X        X        X   J_F1_b1        X         X        X   J_F1_e1        X;
+              X         X         X        X        X         X  J_F2_b2         X        X         X  J_F2_e2;
+              X         X         X        X        X         X        X         X        X    J_G_e1   J_G_e2;
+       J_BASE_O]; 
 
     % Jacobian of Body, alpha1,2, gamma1,2, beta1,2, delta1,2(fixed)
 %     J = [J_O1_B   J_O1_a1         X        X        X         X        X         X        X;
@@ -599,6 +680,7 @@ for t = 1:time.step
 %     J = [ J_O1_B    J_O1_a1         X;
 %           J_O2_B          X   J_O2_a2;
 %          J_BASE_O];    
+%     [svd.U,svd.S,svd.V] = svd(J);
 
     %% Calculate Reactional force
     v_ = v + time.period * W * (wrench.ext + wrench.g + wrench.w);
@@ -703,12 +785,12 @@ for t = 1:time.step
 
     % linkage beta1
     plot3(s(36,1),s(37,1),s(38,1),'Marker','o','MarkerSize',5,'MarkerFaceColor','#0000C6','MarkerEdgeColor','none');
-    plot3([s(36,1)+vector.beta1_B1(1) s(36,1)+vector.beta1_C1(1)],[s(37,1)+vector.beta1_B1(2) s(37,1)+vector.beta1_C1(2)],[s(38,1)+vector.beta1_B1(3) s(38,1)+vector.beta1_C1(3)],'LineWidth',2,'Color','#0000C6');
-    plot3([s(36,1)+vector.beta1_C1(1) s(36,1)+vector.beta1_F1(1)],[s(37,1)+vector.beta1_C1(2) s(37,1)+vector.beta1_F1(2)],[s(38,1)+vector.beta1_C1(3) s(38,1)+vector.beta1_F1(3)],'LineWidth',2,'Color','#0000C6');
+%     plot3([s(36,1)+vector.beta1_B1(1) s(36,1)+vector.beta1_C1(1)],[s(37,1)+vector.beta1_B1(2) s(37,1)+vector.beta1_C1(2)],[s(38,1)+vector.beta1_B1(3) s(38,1)+vector.beta1_C1(3)],'LineWidth',2,'Color','#0000C6');
+%     plot3([s(36,1)+vector.beta1_C1(1) s(36,1)+vector.beta1_F1(1)],[s(37,1)+vector.beta1_C1(2) s(37,1)+vector.beta1_F1(2)],[s(38,1)+vector.beta1_C1(3) s(38,1)+vector.beta1_F1(3)],'LineWidth',2,'Color','#0000C6');
     % linkage beta2
     plot3(s(43,1),s(44,1),s(45,1),'Marker','o','MarkerSize',5,'MarkerFaceColor','#F75000','MarkerEdgeColor','none');
-    plot3([s(43,1)+vector.beta2_B2(1) s(43,1)+vector.beta2_C2(1)],[s(44,1)+vector.beta2_B2(2) s(44,1)+vector.beta2_C2(2)],[s(45,1)+vector.beta2_B2(3) s(45,1)+vector.beta2_C2(3)],'LineWidth',2,'Color','#F75000');
-    plot3([s(43,1)+vector.beta2_C2(1) s(43,1)+vector.beta2_F2(1)],[s(44,1)+vector.beta2_C2(2) s(44,1)+vector.beta2_F2(2)],[s(45,1)+vector.beta2_C2(3) s(45,1)+vector.beta2_F2(3)],'LineWidth',2,'Color','#F75000');
+%     plot3([s(43,1)+vector.beta2_B2(1) s(43,1)+vector.beta2_C2(1)],[s(44,1)+vector.beta2_B2(2) s(44,1)+vector.beta2_C2(2)],[s(45,1)+vector.beta2_B2(3) s(45,1)+vector.beta2_C2(3)],'LineWidth',2,'Color','#F75000');
+%     plot3([s(43,1)+vector.beta2_C2(1) s(43,1)+vector.beta2_F2(1)],[s(44,1)+vector.beta2_C2(2) s(44,1)+vector.beta2_F2(2)],[s(45,1)+vector.beta2_C2(3) s(45,1)+vector.beta2_F2(3)],'LineWidth',2,'Color','#F75000');
     % linkage delta1
     plot3(s(50,1),s(51,1),s(52,1),'Marker','o','MarkerSize',5,'MarkerFaceColor','#77AC30','MarkerEdgeColor','none');
     plot3([s(50,1)+vector.delta1_C1(1) s(50,1)+vector.delta1_D1(1)],[s(51,1)+vector.delta1_C1(2) s(51,1)+vector.delta1_D1(2)],[s(52,1)+vector.delta1_C1(3) s(52,1)+vector.delta1_D1(3)],'LineWidth',2,'Color','#77AC30');
@@ -718,10 +800,18 @@ for t = 1:time.step
 
     % linkage epsilon1
     plot3(s(64,1),s(65,1),s(66,1),'Marker','o','MarkerSize',5,'MarkerFaceColor','#5B00AE','MarkerEdgeColor','none');
-    plot3([s(64,1)+vector.epsilon1_F1(1) s(64,1)+vector.epsilon1_G(1)],[s(65,1)+vector.epsilon1_F1(2) s(65,1)+vector.epsilon1_G(2)],[s(66,1)+vector.epsilon1_F1(3) s(66,1)+vector.epsilon1_G(3)],'LineWidth',2,'Color','#5B00AE');
+%     plot3([s(64,1)+vector.epsilon1_F1(1) s(64,1)+vector.epsilon1_G(1)],[s(65,1)+vector.epsilon1_F1(2) s(65,1)+vector.epsilon1_G(2)],[s(66,1)+vector.epsilon1_F1(3) s(66,1)+vector.epsilon1_G(3)],'LineWidth',2,'Color','#5B00AE');
     % linkage epsilon2
     plot3(s(71,1),s(72,1),s(73,1),'Marker','o','MarkerSize',5,'MarkerFaceColor','#007500','MarkerEdgeColor','none');
-    plot3([s(71,1)+vector.epsilon2_F2(1) s(71,1)+vector.epsilon2_G(1)],[s(72,1)+vector.epsilon2_F2(2) s(72,1)+vector.epsilon2_G(2)],[s(73,1)+vector.epsilon2_F2(3) s(73,1)+vector.epsilon2_G(3)],'LineWidth',2,'Color','#007500');
+%     plot3([s(71,1)+vector.epsilon2_F2(1) s(71,1)+vector.epsilon2_G(1)],[s(72,1)+vector.epsilon2_F2(2) s(72,1)+vector.epsilon2_G(2)],[s(73,1)+vector.epsilon2_F2(3) s(73,1)+vector.epsilon2_G(3)],'LineWidth',2,'Color','#007500');
+
+    [rupframe_3D,rdownframe_3D] = outframe_coordinate3D(s(36:38,1)+vector.beta1_B1, s(36:38,1)+vector.beta1_C1, s(36:38,1)+vector.beta1_F1, s(64:66,1)+vector.epsilon1_G,R,up_deg);
+    plot3(rupframe_3D(:,1),rupframe_3D(:,2),rupframe_3D(:,3),'LineWidth',2,'Color','#0000C6');
+    plot3(rdownframe_3D(:,1),rdownframe_3D(:,2),rdownframe_3D(:,3),'LineWidth',2,'Color','#5B00AE');
+
+    [lupframe_3D,ldownframe_3D] = outframe_coordinate3D(s(43:45,1)+vector.beta2_B2, s(43:45,1)+vector.beta2_C2, s(43:45,1)+vector.beta2_F2, s(71:73,1)+vector.epsilon2_G,R,up_deg);
+    plot3(lupframe_3D(:,1),lupframe_3D(:,2),lupframe_3D(:,3),'LineWidth',2,'Color','#F75000');
+    plot3(ldownframe_3D(:,1),ldownframe_3D(:,2),ldownframe_3D(:,3),'LineWidth',2,'Color','#007500');
 
     hold off
     axis equal
@@ -757,8 +847,3 @@ for t = 1:time.step
     history.wrench.total(:,t+1) = wrench.total;
 
 end
-
-
-
-
-
